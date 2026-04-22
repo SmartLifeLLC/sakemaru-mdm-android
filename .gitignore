@@ -8,3 +8,5 @@ captures/
 app/build/
 app/google-services.json
 app/sakemaru-mdm-prod*.json
+keystore/
+keystore.properties

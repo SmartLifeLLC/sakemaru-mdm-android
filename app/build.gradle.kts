@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
+import java.io.InputStreamReader
 import java.util.Properties
 
 plugins {
@@ -23,7 +24,13 @@ if (localPropertiesFile.exists()) {
 val deployProperties = Properties()
 val deployPropertiesFile = rootProject.file("deploy-config.properties")
 if (deployPropertiesFile.exists()) {
-    deployProperties.load(FileInputStream(deployPropertiesFile))
+    deployProperties.load(InputStreamReader(FileInputStream(deployPropertiesFile), Charsets.UTF_8))
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 fun String.asBuildConfigString(): String =
@@ -48,6 +55,17 @@ val defaultServerUrl = when (defaultEnvironment) {
 android {
     namespace = "com.smartlife.sakemaru.bansuke"
     compileSdk = 36
+
+    if (keystorePropertiesFile.exists()) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.smartlife.sakemaru.bansuke"
@@ -79,6 +97,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
