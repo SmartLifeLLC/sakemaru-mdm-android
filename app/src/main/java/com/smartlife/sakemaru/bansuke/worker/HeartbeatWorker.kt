@@ -8,6 +8,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.smartlife.sakemaru.bansuke.command.DeviceLockCommandHandler
 import com.smartlife.sakemaru.bansuke.config.DeviceConfigStore
 import com.smartlife.sakemaru.bansuke.device.DeviceRegistrationRepository
 import com.smartlife.sakemaru.bansuke.network.MdmApiException
@@ -18,7 +19,8 @@ class HeartbeatWorker(
 ) : CoroutineWorker(appContext, workerParams) {
     override suspend fun doWork(): Result {
         return try {
-            DeviceRegistrationRepository(DeviceConfigStore(applicationContext)).heartbeat()
+            val status = if (DeviceLockCommandHandler.isLocked(applicationContext)) "locked" else "active"
+            DeviceRegistrationRepository(DeviceConfigStore(applicationContext)).heartbeat(status)
             Result.success()
         } catch (throwable: Throwable) {
             if (throwable is MdmApiException && throwable.statusCode == 401) {

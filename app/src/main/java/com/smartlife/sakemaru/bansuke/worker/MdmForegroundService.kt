@@ -11,6 +11,7 @@ import com.smartlife.sakemaru.bansuke.ui.MainActivity
 import com.smartlife.sakemaru.bansuke.BansukeApplication
 import com.smartlife.sakemaru.bansuke.R
 import com.smartlife.sakemaru.bansuke.command.CommandDispatcher
+import com.smartlife.sakemaru.bansuke.command.DeviceLockCommandHandler
 import com.smartlife.sakemaru.bansuke.config.DeviceConfigStore
 import com.smartlife.sakemaru.bansuke.device.DeviceRegistrationRepository
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
@@ -53,7 +54,8 @@ class MdmForegroundService : Service() {
         serviceScope.launch {
             while (isActive) {
                 runCatching {
-                    DeviceRegistrationRepository(DeviceConfigStore(applicationContext)).heartbeat()
+                    val status = if (DeviceLockCommandHandler.isLocked(applicationContext)) "locked" else "active"
+                    DeviceRegistrationRepository(DeviceConfigStore(applicationContext)).heartbeat(status)
                 }.onFailure { throwable ->
                     MdmLog.warn("Heartbeat failed: ${throwable.message}", throwable)
                     if (throwable is MdmApiException && throwable.statusCode == 401) {

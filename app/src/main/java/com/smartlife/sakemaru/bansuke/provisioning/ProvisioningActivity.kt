@@ -60,6 +60,7 @@ class ProvisioningActivity : Activity() {
                 val granter = ManagedDevicePermissionGranter(applicationContext)
                 granter.grantAllManagedPermissions()
                 granter.blockUninstall()
+                granter.applyUserRestrictions()
                 granter.hideLauncherIcon()
             }
             

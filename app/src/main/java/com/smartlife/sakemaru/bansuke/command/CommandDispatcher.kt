@@ -17,6 +17,8 @@ class CommandDispatcher(
         val outcome = try {
             when (command.type) {
                 "app_update" -> AppUpdateCommandHandler(appContext).handle(config, command)
+                "device_lock" -> DeviceLockCommandHandler(appContext).lock(command)
+                "device_unlock" -> DeviceLockCommandHandler(appContext).unlock()
                 else -> CommandExecutionOutcome.error(
                     errorCode = "UNSUPPORTED_COMMAND",
                     message = "Unsupported command type: ${command.type}",

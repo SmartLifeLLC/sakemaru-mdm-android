@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.UserManager
 import com.smartlife.sakemaru.bansuke.BansukeDeviceAdminReceiver
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
 import com.smartlife.sakemaru.bansuke.location.LocationSnapshotProvider
@@ -40,6 +41,23 @@ class ManagedDevicePermissionGranter(context: Context) {
             dpm.setUninstallBlocked(adminComponent, appContext.packageName, true)
         }.onFailure { throwable ->
             MdmLog.warn("Failed to block uninstall", throwable)
+        }
+    }
+
+    fun applyUserRestrictions() {
+        val dpm = devicePolicyManager() ?: return
+        val adminComponent = ComponentName(appContext, BansukeDeviceAdminReceiver::class.java)
+        val restrictions = listOf(
+            UserManager.DISALLOW_SAFE_BOOT,
+            UserManager.DISALLOW_ADD_USER,
+            UserManager.DISALLOW_DEBUGGING_FEATURES,
+        )
+        restrictions.forEach { restriction ->
+            runCatching {
+                dpm.addUserRestriction(adminComponent, restriction)
+            }.onFailure { throwable ->
+                MdmLog.warn("Failed to add user restriction: $restriction", throwable)
+            }
         }
     }
 
