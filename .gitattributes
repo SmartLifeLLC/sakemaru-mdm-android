@@ -1,0 +1,2 @@
+# Keep deploy-specific configuration out of branch merges.
+deploy-config.properties -merge
