@@ -42,7 +42,7 @@ class HeartbeatWorker(
         private const val MAX_RETRIES = 3
         private const val UNIQUE_LOOP = "mdm-heartbeat-loop"
         private const val UNIQUE_NOW = "mdm-heartbeat-now"
-        private const val LOOP_DELAY_MINUTES = 5L
+        private const val LOOP_DELAY_MINUTES = 1L
 
         fun enqueueImmediate(context: Context) {
             val request = OneTimeWorkRequestBuilder<HeartbeatWorker>()

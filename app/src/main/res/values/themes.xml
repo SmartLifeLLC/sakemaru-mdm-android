@@ -7,5 +7,12 @@
         <item name="android:statusBarColor">@color/bansuke_background</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <style name="Theme.Bansuke.Splash" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
 </resources>
 

@@ -49,6 +49,14 @@ data class HeartbeatRequest(
     @SerialName("registration_key") val registrationKey: String? = null,
     val name: String,
     val status: String = "active",
+    val location: HeartbeatLocationDto? = null,
+)
+
+@Serializable
+data class HeartbeatLocationDto(
+    val latitude: Double,
+    val longitude: Double,
+    @SerialName("recorded_at") val recordedAt: String? = null,
 )
 
 @Serializable

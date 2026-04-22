@@ -18,6 +18,9 @@ private val Context.deviceConfigDataStore by preferencesDataStore(name = "device
 class DeviceConfigStore(context: Context) {
     private val appContext = context.applicationContext
 
+    val applicationContext: Context
+        get() = appContext
+
     val configFlow: Flow<DeviceConfig> = appContext.deviceConfigDataStore.data.map { preferences ->
         val environment = ServerEnvironment.fromRaw(preferences[Keys.MDM_ENVIRONMENT]).name
 

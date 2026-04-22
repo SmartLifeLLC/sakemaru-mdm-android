@@ -57,6 +57,7 @@ class ProvisioningActivity : Activity() {
             val store = DeviceConfigStore(applicationContext)
             withContext(Dispatchers.IO) {
                 store.saveProvisioningExtras(extras)
+                ManagedDevicePermissionGranter(applicationContext).grantLocationPermissions()
             }
             
             // 疎通確認テストの実行

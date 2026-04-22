@@ -1,8 +1,11 @@
 package com.smartlife.sakemaru.bansuke.ui
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.view.ViewGroup
@@ -20,7 +23,9 @@ import com.smartlife.sakemaru.bansuke.config.DeviceConfigStore
 import com.smartlife.sakemaru.bansuke.config.ServerEnvironment
 import com.smartlife.sakemaru.bansuke.device.DeviceRegistrationRepository
 import com.smartlife.sakemaru.bansuke.fcm.FcmTokenProvider
+import com.smartlife.sakemaru.bansuke.location.LocationSnapshotProvider
 import com.smartlife.sakemaru.bansuke.network.MdmApiException
+import com.smartlife.sakemaru.bansuke.provisioning.ManagedDevicePermissionGranter
 import com.smartlife.sakemaru.bansuke.worker.MdmWorkScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +41,10 @@ class MainActivity : Activity() {
     private lateinit var environmentSpinner: Spinner
     private lateinit var deviceNameInput: EditText
 
+    companion object {
+        private const val REQUEST_LOCATION_PERMISSIONS = 2001
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         configStore = DeviceConfigStore(applicationContext)
@@ -44,12 +53,25 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        ManagedDevicePermissionGranter(applicationContext).grantLocationPermissions()
+        requestForegroundLocationPermissionIfNeeded()
         refreshStatus()
     }
 
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_LOCATION_PERMISSIONS) {
+            refreshStatus("Location permission updated")
+        }
     }
 
     private fun buildContentView() {
@@ -237,6 +259,7 @@ class MainActivity : Activity() {
             append("MDM: ").append(config.mdmBaseUrl.ifBlank { BuildConfig.DEFAULT_MDM_BASE_URL }).append('\n')
             append("Device code: ").append(config.deviceCode.ifBlank { "-" }).append('\n')
             append("Name: ").append(config.displayName.ifBlank { "-" }).append('\n')
+            append("Location permission: ").append(LocationSnapshotProvider.permissionStatusLabel(this@MainActivity)).append('\n')
             append("Firebase config: ").append(if (BuildConfig.FIREBASE_CONFIGURED) "ready" else "missing").append('\n')
             append("FCM token: ").append(if (config.fcmToken.isBlank()) "missing" else "saved")
         }
@@ -245,5 +268,29 @@ class MainActivity : Activity() {
     private fun selectedEnvironment(): ServerEnvironment {
         val selected = environmentSpinner.selectedItem?.toString()
         return ServerEnvironment.fromRaw(selected)
+    }
+
+    private fun requestForegroundLocationPermissionIfNeeded() {
+        if (LocationSnapshotProvider.hasAnyLocationPermission(this)) {
+            return
+        }
+
+        val permissions = buildList {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                add(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+        }
+
+        if (permissions.isNotEmpty()) {
+            requestPermissions(permissions.toTypedArray(), REQUEST_LOCATION_PERMISSIONS)
+        } else if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            !LocationSnapshotProvider.hasBackgroundLocationPermission(this)
+        ) {
+            refreshStatus("Background location is not granted")
+        }
     }
 }

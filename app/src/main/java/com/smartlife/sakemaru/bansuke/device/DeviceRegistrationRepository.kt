@@ -3,10 +3,12 @@ package com.smartlife.sakemaru.bansuke.device
 import com.smartlife.sakemaru.bansuke.config.DeviceConfig
 import com.smartlife.sakemaru.bansuke.config.DeviceConfigStore
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
+import com.smartlife.sakemaru.bansuke.location.LocationSnapshotProvider
 import com.smartlife.sakemaru.bansuke.network.MdmApiClient
 import com.smartlife.sakemaru.bansuke.network.MdmApiException
 import com.smartlife.sakemaru.bansuke.network.dto.CommandResultRequest
 import com.smartlife.sakemaru.bansuke.network.dto.FcmTokenRequest
+import com.smartlife.sakemaru.bansuke.network.dto.HeartbeatLocationDto
 import com.smartlife.sakemaru.bansuke.network.dto.HeartbeatRequest
 import com.smartlife.sakemaru.bansuke.network.dto.InstalledAppDto
 import com.smartlife.sakemaru.bansuke.network.dto.InstalledAppsReportRequest
@@ -54,6 +56,7 @@ class DeviceRegistrationRepository(
     suspend fun heartbeat(status: String = "active") {
         val config = configStore.read()
         if (!config.isRegistered) return
+        val location = LocationSnapshotProvider(configStore.applicationContext).currentOrNull()
 
         resetRegistrationOnUnauthorized {
             MdmApiClient(config.mdmBaseUrl).heartbeat(
@@ -63,10 +66,19 @@ class DeviceRegistrationRepository(
                     registrationKey = config.registrationKey,
                     name = config.displayName,
                     status = status,
+                    location = location?.let {
+                        HeartbeatLocationDto(
+                            latitude = it.latitude,
+                            longitude = it.longitude,
+                            recordedAt = it.recordedAt,
+                        )
+                    },
                 )
             )
         }
-        MdmLog.info("Heartbeat sent: device=${config.deviceCode}, status=$status")
+        MdmLog.info(
+            "Heartbeat sent: device=${config.deviceCode}, status=$status, location=${if (location != null) "included" else "missing"}"
+        )
     }
 
     suspend fun reportInstalledApps(apps: List<InstalledAppDto>) {
