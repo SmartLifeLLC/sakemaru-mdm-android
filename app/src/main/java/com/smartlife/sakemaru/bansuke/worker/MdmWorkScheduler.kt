@@ -4,8 +4,7 @@ import android.content.Context
 
 object MdmWorkScheduler {
     fun scheduleLoops(context: Context) {
-        HeartbeatWorker.scheduleNext(context)
-        CommandSyncWorker.scheduleNext(context)
+        MdmForegroundService.start(context)
         InstalledAppsReportWorker.scheduleNext(context)
     }
 

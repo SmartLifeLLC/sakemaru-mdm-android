@@ -8,8 +8,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".BansukeApplication"
@@ -37,18 +40,20 @@
         </activity>
 
         <activity
-            android:name=".ui.SplashActivity"
+            android:name=".ui.MainActivity"
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <activity-alias
+            android:name=".ui.LauncherAlias"
+            android:excludeFromRecents="true"
             android:exported="true"
-            android:theme="@style/Theme.Bansuke.Splash">
+            android:targetActivity=".ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".ui.MainActivity"
-            android:exported="false" />
+        </activity-alias>
 
         <receiver
             android:name=".BansukeDeviceAdminReceiver"
@@ -73,6 +78,11 @@
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <service
+            android:name=".worker.MdmForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

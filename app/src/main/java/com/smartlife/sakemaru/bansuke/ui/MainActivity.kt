@@ -53,7 +53,9 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        ManagedDevicePermissionGranter(applicationContext).grantLocationPermissions()
+        val granter = ManagedDevicePermissionGranter(applicationContext)
+        granter.grantAllManagedPermissions()
+        granter.blockUninstall()
         requestForegroundLocationPermissionIfNeeded()
         refreshStatus()
     }
