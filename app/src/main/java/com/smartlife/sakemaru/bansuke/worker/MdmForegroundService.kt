@@ -34,7 +34,13 @@ class MdmForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: Exception) {
+            MdmLog.warn("startForeground failed (permissions not ready): ${e.message}")
+            stopSelf()
+            return
+        }
         acquireWakeLock()
         startHeartbeatLoop()
         startCommandSyncLoop()

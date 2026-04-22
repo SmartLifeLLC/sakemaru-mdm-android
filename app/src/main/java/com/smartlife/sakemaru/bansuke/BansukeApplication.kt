@@ -9,7 +9,9 @@ class BansukeApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
-        MdmWorkScheduler.scheduleLoops(this)
+        runCatching {
+            MdmWorkScheduler.scheduleLoops(this)
+        }
         MdmWorkScheduler.enqueueRegistration(this)
     }
 
