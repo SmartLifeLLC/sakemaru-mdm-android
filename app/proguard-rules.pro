@@ -1,0 +1,2 @@
+-keep class kotlinx.serialization.** { *; }
+-keep class com.smartlife.sakemaru.bansuke.network.dto.** { *; }

@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.Bansuke" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/bansuke_background</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">@color/bansuke_accent</item>
+        <item name="android:navigationBarColor">@color/bansuke_background</item>
+        <item name="android:statusBarColor">@color/bansuke_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
+
