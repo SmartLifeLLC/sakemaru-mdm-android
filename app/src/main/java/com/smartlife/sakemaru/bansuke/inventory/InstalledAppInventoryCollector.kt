@@ -12,6 +12,7 @@ class InstalledAppInventoryCollector(context: Context) {
 
     fun collect(): List<InstalledAppDto> =
         installedPackages()
+            .filter { it.applicationInfo?.isSystemApp() != true }
             .mapNotNull { packageInfo -> packageInfo.toInstalledAppDto() }
             .sortedBy { it.packageName }
 
