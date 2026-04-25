@@ -77,6 +77,14 @@
         </receiver>
 
         <receiver
+            android:name=".command.AdminActionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.smartlife.sakemaru.bansuke.CLEAR_DEVICE_OWNER" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".worker.BootCompletedReceiver"
             android:enabled="true"
             android:exported="true">
