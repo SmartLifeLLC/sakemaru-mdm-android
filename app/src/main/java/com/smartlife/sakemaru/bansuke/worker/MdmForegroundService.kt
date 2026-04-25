@@ -114,7 +114,7 @@ class MdmForegroundService : Service() {
         )
         return Notification.Builder(this, BansukeApplication.DEFAULT_CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("端末管理サービス実行中")
+            .setContentText("端末安心モード")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(tapIntent)
             .setOngoing(true)
