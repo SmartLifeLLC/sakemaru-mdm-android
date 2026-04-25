@@ -71,8 +71,8 @@ android {
         applicationId = "com.smartlife.sakemaru.bansuke"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.0.6"
+        versionCode = 8
+        versionName = "1.0.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
