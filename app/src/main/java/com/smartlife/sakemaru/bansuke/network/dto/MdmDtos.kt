@@ -14,6 +14,7 @@ data class RegisterRequest(
     @SerialName("registration_key") val registrationKey: String,
     val name: String? = null,
     @SerialName("fcm_token") val fcmToken: String? = null,
+    val serial: String? = null,
     val platform: String = "android",
 )
 
@@ -48,6 +49,7 @@ data class HeartbeatRequest(
     @SerialName("device_code") val deviceCode: String,
     @SerialName("registration_key") val registrationKey: String? = null,
     val name: String,
+    val serial: String? = null,
     val status: String = "active",
     val location: HeartbeatLocationDto? = null,
 )
