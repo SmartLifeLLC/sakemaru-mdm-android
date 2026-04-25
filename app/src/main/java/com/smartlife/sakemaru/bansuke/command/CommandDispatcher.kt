@@ -12,8 +12,14 @@ class CommandDispatcher(
     private val repository: DeviceRegistrationRepository,
 ) {
     private val appContext = context.applicationContext
+    private val executedIds = appContext.getSharedPreferences("mdm_executed_commands", Context.MODE_PRIVATE)
 
     suspend fun dispatch(config: DeviceConfig, command: DeviceCommandDto) {
+        if (executedIds.contains(command.id.toString())) {
+            MdmLog.info("Command already executed, skipping: id=${command.id}, type=${command.type}")
+            return
+        }
+
         val outcome = try {
             when (command.type) {
                 "app_update" -> AppUpdateCommandHandler(appContext).handle(config, command)
@@ -38,6 +44,7 @@ class CommandDispatcher(
             errorCode = outcome.errorCode,
             message = outcome.message,
         )
+        executedIds.edit().putBoolean(command.id.toString(), true).apply()
         MdmLog.info(
             "Command result sent: id=${command.id}, type=${command.type}, " +
                 "result=${outcome.result}, errorCode=${outcome.errorCode ?: "-"}"
