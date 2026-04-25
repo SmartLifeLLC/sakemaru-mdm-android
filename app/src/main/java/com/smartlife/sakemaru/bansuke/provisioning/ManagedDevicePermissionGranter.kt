@@ -18,7 +18,7 @@ class ManagedDevicePermissionGranter(context: Context) {
         val adminComponent = ComponentName(appContext, BansukeDeviceAdminReceiver::class.java)
 
         val permissions = LocationSnapshotProvider.managedDevicePermissions() +
-            listOf(Manifest.permission.POST_NOTIFICATIONS)
+            listOf(Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.READ_PHONE_STATE)
 
         permissions.forEach { permission ->
             runCatching {

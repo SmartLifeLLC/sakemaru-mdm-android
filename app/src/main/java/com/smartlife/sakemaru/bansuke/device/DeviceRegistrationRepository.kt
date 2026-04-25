@@ -20,11 +20,13 @@ class DeviceRegistrationRepository(
     suspend fun registerDevice(): DeviceConfig {
         configStore.ensureRegistrationKey()
         val config = requireProvisioningConfig(configStore.read())
+        val serial = DeviceIdentifier.serial()
         val data = MdmApiClient(config.mdmBaseUrl).register(
             RegisterRequest(
                 registrationKey = config.registrationKey,
                 name = config.deviceName.ifBlank { null },
                 fcmToken = config.fcmToken.ifBlank { null },
+                serial = serial.ifBlank { null },
             )
         )
         configStore.saveRegistration(data)
@@ -65,6 +67,7 @@ class DeviceRegistrationRepository(
                     deviceCode = config.deviceCode,
                     registrationKey = config.registrationKey,
                     name = config.displayName,
+                    serial = DeviceIdentifier.serial().ifBlank { null },
                     status = status,
                     location = location?.let {
                         HeartbeatLocationDto(
