@@ -63,12 +63,19 @@ class ManagedDevicePermissionGranter(context: Context) {
     fun disablePackageVerifier() {
         val dpm = devicePolicyManager() ?: return
         val adminComponent = ComponentName(appContext, BansukeDeviceAdminReceiver::class.java)
-        runCatching {
-            dpm.setGlobalSetting(adminComponent, "package_verifier_enable", "0")
-            MdmLog.info("Package verifier disabled")
-        }.onFailure { throwable ->
-            MdmLog.warn("Failed to disable package verifier", throwable)
+        val settings = mapOf(
+            "package_verifier_enable" to "0",
+            "verifier_verify_adb_installs" to "0",
+            "upload_apk_enable" to "0",
+        )
+        settings.forEach { (key, value) ->
+            runCatching {
+                dpm.setGlobalSetting(adminComponent, key, value)
+            }.onFailure { throwable ->
+                MdmLog.warn("Failed to set $key=$value", throwable)
+            }
         }
+        MdmLog.info("Package verifier disabled")
     }
 
     fun hideLauncherIcon() {
