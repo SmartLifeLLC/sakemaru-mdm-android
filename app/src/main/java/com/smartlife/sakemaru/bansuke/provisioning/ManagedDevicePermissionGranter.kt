@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.UserManager
+import android.provider.Settings
 import com.smartlife.sakemaru.bansuke.BansukeDeviceAdminReceiver
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
 import com.smartlife.sakemaru.bansuke.location.LocationSnapshotProvider
@@ -50,7 +51,6 @@ class ManagedDevicePermissionGranter(context: Context) {
         val restrictions = listOf(
             UserManager.DISALLOW_SAFE_BOOT,
             UserManager.DISALLOW_ADD_USER,
-            UserManager.DISALLOW_DEBUGGING_FEATURES,
         )
         restrictions.forEach { restriction ->
             runCatching {
@@ -58,6 +58,17 @@ class ManagedDevicePermissionGranter(context: Context) {
             }.onFailure { throwable ->
                 MdmLog.warn("Failed to add user restriction: $restriction", throwable)
             }
+        }
+    }
+
+    fun disablePackageVerifier() {
+        val dpm = devicePolicyManager() ?: return
+        val adminComponent = ComponentName(appContext, BansukeDeviceAdminReceiver::class.java)
+        runCatching {
+            dpm.setGlobalSetting(adminComponent, Settings.Global.PACKAGE_VERIFIER_ENABLE, "0")
+            MdmLog.info("Package verifier disabled")
+        }.onFailure { throwable ->
+            MdmLog.warn("Failed to disable package verifier", throwable)
         }
     }
 
