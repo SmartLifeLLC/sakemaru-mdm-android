@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInstaller
+import android.content.pm.PackageManager
 import android.os.Build
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
@@ -36,6 +37,9 @@ class PackageInstallManager(context: Context) {
             try {
                 val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
                 params.setAppPackageName(packageName)
+                params.setInstallReason(PackageManager.INSTALL_REASON_POLICY)
+                params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+                params.setDontKillApp(true)
                 val createdSessionId = installer.createSession(params)
                 sessionId = createdSessionId
                 val action = "${appContext.packageName}.INSTALL_RESULT.$createdSessionId"
