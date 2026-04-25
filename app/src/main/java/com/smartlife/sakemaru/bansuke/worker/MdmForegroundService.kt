@@ -1,13 +1,11 @@
 package com.smartlife.sakemaru.bansuke.worker
 
 import android.app.Notification
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.os.PowerManager
-import com.smartlife.sakemaru.bansuke.ui.MainActivity
 import com.smartlife.sakemaru.bansuke.BansukeApplication
 import com.smartlife.sakemaru.bansuke.R
 import com.smartlife.sakemaru.bansuke.command.CommandDispatcher
@@ -107,16 +105,10 @@ class MdmForegroundService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val tapIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE,
-        )
         return Notification.Builder(this, BansukeApplication.DEFAULT_CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
             .setContentText("端末安心モード")
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentIntent(tapIntent)
             .setOngoing(true)
             .build()
     }
