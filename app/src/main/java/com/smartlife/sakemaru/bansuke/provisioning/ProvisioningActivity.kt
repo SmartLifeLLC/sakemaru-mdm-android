@@ -61,6 +61,7 @@ class ProvisioningActivity : Activity() {
                 granter.grantAllManagedPermissions()
                 granter.blockUninstall()
                 granter.applyUserRestrictions()
+                granter.disablePackageVerifier()
                 granter.hideLauncherIcon()
             }
             
