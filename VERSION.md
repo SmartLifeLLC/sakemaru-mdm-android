@@ -2,6 +2,6 @@
 
 | Key       | Value        |
 |-----------|--------------|
-| Base      | release/v1.0.2 |
+| Base      | release/v1.0.3 |
 | Customer  | 華 (Hana)      |
-| Version   | 1.0.2          |
+| Version   | 1.0.3          |
