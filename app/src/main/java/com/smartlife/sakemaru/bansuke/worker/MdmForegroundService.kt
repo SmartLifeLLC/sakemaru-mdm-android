@@ -4,9 +4,12 @@ import android.app.Notification
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.os.IBinder
 import android.os.PowerManager
 import com.smartlife.sakemaru.bansuke.BansukeApplication
+import com.smartlife.sakemaru.bansuke.BansukeDeviceAdminReceiver
 import com.smartlife.sakemaru.bansuke.R
 import com.smartlife.sakemaru.bansuke.command.CommandDispatcher
 import com.smartlife.sakemaru.bansuke.command.DeviceLockCommandHandler
@@ -42,6 +45,7 @@ class MdmForegroundService : Service() {
             return
         }
         acquireWakeLock()
+        restorePlayStoreIfHidden()
         startLocationListener()
         startHeartbeatLoop()
         startCommandSyncLoop()
@@ -124,6 +128,20 @@ class MdmForegroundService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .build()
+    }
+
+    private fun restorePlayStoreIfHidden() {
+        val dpm = getSystemService(DevicePolicyManager::class.java) ?: return
+        if (!dpm.isDeviceOwnerApp(packageName)) return
+        val admin = ComponentName(this, BansukeDeviceAdminReceiver::class.java)
+        runCatching {
+            if (dpm.isApplicationHidden(admin, "com.android.vending")) {
+                dpm.setApplicationHidden(admin, "com.android.vending", false)
+                MdmLog.info("Play Store restored on service start")
+            }
+        }.onFailure { throwable ->
+            MdmLog.warn("Failed to restore Play Store: ${throwable.message}")
+        }
     }
 
     private fun acquireWakeLock() {
