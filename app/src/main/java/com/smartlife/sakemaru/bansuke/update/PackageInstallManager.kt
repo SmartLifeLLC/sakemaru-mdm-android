@@ -3,12 +3,15 @@ package com.smartlife.sakemaru.bansuke.update
 import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.os.Build
+import com.smartlife.sakemaru.bansuke.BansukeDeviceAdminReceiver
+import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
@@ -22,6 +25,30 @@ class PackageInstallManager(context: Context) {
             return PackageInstallOutcome.Failure("Device Owner is required for silent install")
         }
 
+        val adminComponent = ComponentName(appContext, BansukeDeviceAdminReceiver::class.java)
+        suppressPlayStoreVerifier(devicePolicyManager, adminComponent, true)
+
+        try {
+            return doInstall(apkFile, packageName)
+        } finally {
+            suppressPlayStoreVerifier(devicePolicyManager, adminComponent, false)
+        }
+    }
+
+    private fun suppressPlayStoreVerifier(
+        dpm: DevicePolicyManager,
+        admin: ComponentName,
+        hide: Boolean,
+    ) {
+        runCatching {
+            dpm.setApplicationHidden(admin, PLAY_STORE_PACKAGE, hide)
+            MdmLog.info("Play Store ${if (hide) "hidden" else "restored"} for install")
+        }.onFailure { throwable ->
+            MdmLog.warn("Failed to ${if (hide) "hide" else "restore"} Play Store: ${throwable.message}")
+        }
+    }
+
+    private suspend fun doInstall(apkFile: File, packageName: String): PackageInstallOutcome {
         return suspendCancellableCoroutine { continuation ->
             val installer = appContext.packageManager.packageInstaller
             var sessionId: Int? = null
@@ -113,10 +140,13 @@ class PackageInstallManager(context: Context) {
             }
         }
     }
+
+    companion object {
+        private const val PLAY_STORE_PACKAGE = "com.android.vending"
+    }
 }
 
 sealed interface PackageInstallOutcome {
     data object Success : PackageInstallOutcome
     data class Failure(val message: String) : PackageInstallOutcome
 }
-
