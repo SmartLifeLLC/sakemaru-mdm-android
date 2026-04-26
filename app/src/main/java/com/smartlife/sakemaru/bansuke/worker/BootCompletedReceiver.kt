@@ -12,6 +12,10 @@ import com.smartlife.sakemaru.bansuke.ui.LockScreenActivity
 class BootCompletedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
+            Intent.ACTION_MY_PACKAGE_REPLACED -> {
+                MdmWorkScheduler.scheduleLoops(context)
+                MdmWorkScheduler.enqueueImmediateSync(context)
+            }
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_LOCKED_BOOT_COMPLETED
             -> {
