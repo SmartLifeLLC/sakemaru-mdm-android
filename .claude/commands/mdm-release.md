@@ -10,8 +10,5 @@ $ARGUMENTS にバージョン名を指定する（例: `1.1.2`）
 4. `deploy/hana` にマージ
 5. deploy/hanaで `./gradlew assembleRelease` でビルド
 6. APKをコピー: `hana-mdm-v{バージョン名}.apk`
-7. deploy専用ファイルを更新・コミット:
-   - `VERSION.md` を更新
-   - `hana-{バージョン名}.json` を作成（APK URL更新）
-   - `hana-{バージョン名}.png` をQRコード生成
+7. `VERSION.md` を更新・コミット
 8. 結果を報告（versionCode, versionName, APKパス, S3アップロードコマンド）
