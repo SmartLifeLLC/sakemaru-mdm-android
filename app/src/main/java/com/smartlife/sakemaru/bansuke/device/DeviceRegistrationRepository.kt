@@ -16,6 +16,7 @@ import com.smartlife.sakemaru.bansuke.network.dto.RegisterRequest
 
 class DeviceRegistrationRepository(
     private val configStore: DeviceConfigStore,
+    private val locationProvider: LocationSnapshotProvider? = null,
 ) {
     suspend fun registerDevice(): DeviceConfig {
         configStore.ensureRegistrationKey()
@@ -58,7 +59,8 @@ class DeviceRegistrationRepository(
     suspend fun heartbeat(status: String = "active") {
         val config = configStore.read()
         if (!config.isRegistered) return
-        val location = LocationSnapshotProvider(configStore.applicationContext).currentOrNull()
+        val provider = locationProvider ?: LocationSnapshotProvider(configStore.applicationContext)
+        val location = provider.currentOrNull()
 
         resetRegistrationOnUnauthorized {
             MdmApiClient(config.mdmBaseUrl).heartbeat(

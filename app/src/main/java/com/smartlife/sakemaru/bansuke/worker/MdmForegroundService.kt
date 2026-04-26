@@ -13,6 +13,7 @@ import com.smartlife.sakemaru.bansuke.command.DeviceLockCommandHandler
 import com.smartlife.sakemaru.bansuke.config.DeviceConfigStore
 import com.smartlife.sakemaru.bansuke.device.DeviceRegistrationRepository
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
+import com.smartlife.sakemaru.bansuke.location.LocationSnapshotProvider
 import com.smartlife.sakemaru.bansuke.network.MdmApiClient
 import com.smartlife.sakemaru.bansuke.network.MdmApiException
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +28,7 @@ class MdmForegroundService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var wakeLock: PowerManager.WakeLock? = null
+    private var locationProvider: LocationSnapshotProvider? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -40,6 +42,7 @@ class MdmForegroundService : Service() {
             return
         }
         acquireWakeLock()
+        startLocationListener()
         startHeartbeatLoop()
         startCommandSyncLoop()
         MdmLog.info("MDM foreground service started")
@@ -49,9 +52,16 @@ class MdmForegroundService : Service() {
 
     override fun onDestroy() {
         serviceScope.cancel()
+        locationProvider?.stopListening()
         wakeLock?.let { if (it.isHeld) it.release() }
         MdmLog.info("MDM foreground service stopped")
         super.onDestroy()
+    }
+
+    private fun startLocationListener() {
+        locationProvider = LocationSnapshotProvider(applicationContext).also {
+            it.startListening()
+        }
     }
 
     private fun startHeartbeatLoop() {
@@ -59,7 +69,10 @@ class MdmForegroundService : Service() {
             while (isActive) {
                 runCatching {
                     val status = if (DeviceLockCommandHandler.isLocked(applicationContext)) "locked" else "active"
-                    DeviceRegistrationRepository(DeviceConfigStore(applicationContext)).heartbeat(status)
+                    DeviceRegistrationRepository(
+                        DeviceConfigStore(applicationContext),
+                        locationProvider,
+                    ).heartbeat(status)
                 }.onFailure { throwable ->
                     MdmLog.warn("Heartbeat failed: ${throwable.message}", throwable)
                     if (throwable is MdmApiException && throwable.statusCode == 401) {
