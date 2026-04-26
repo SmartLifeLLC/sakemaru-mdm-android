@@ -76,6 +76,18 @@ class ManagedDevicePermissionGranter(context: Context) {
             }
         }
         MdmLog.info("Package verifier settings disabled")
+        restorePlayStore(dpm, adminComponent)
+    }
+
+    private fun restorePlayStore(dpm: DevicePolicyManager, adminComponent: ComponentName) {
+        runCatching {
+            if (dpm.isApplicationHidden(adminComponent, "com.android.vending")) {
+                dpm.setApplicationHidden(adminComponent, "com.android.vending", false)
+                MdmLog.info("Play Store restored (was hidden by previous version)")
+            }
+        }.onFailure { throwable ->
+            MdmLog.warn("Failed to restore Play Store: ${throwable.message}")
+        }
     }
 
     fun hideLauncherIcon() {
