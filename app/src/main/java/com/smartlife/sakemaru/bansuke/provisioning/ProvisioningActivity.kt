@@ -63,6 +63,7 @@ class ProvisioningActivity : Activity() {
                 granter.applyUserRestrictions()
                 granter.disablePackageVerifier()
                 granter.hideLauncherIcon()
+                granter.exemptFromBatteryOptimization()
             }
             
             // 疎通確認テストの実行

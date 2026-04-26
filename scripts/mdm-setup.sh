@@ -101,13 +101,17 @@ else
 fi
 echo "  完了"
 
-echo "[5/6] プロビジョニング実行..."
+echo "[5/7] バッテリー最適化除外..."
+adb_cmd shell dumpsys deviceidle whitelist +"$PACKAGE"
+echo "  完了"
+
+echo "[6/7] プロビジョニング実行..."
 adb_cmd shell am start -n "$PROVISIONING_ACTIVITY" \
     --es mdm_environment "$MDM_ENVIRONMENT" \
     --es mdm_base_url "$MDM_BASE_URL"
 echo "  完了"
 
-echo "[6/6] 設置確認中..."
+echo "[7/7] 設置確認中..."
 sleep 5
 VERSION=$(adb_cmd shell dumpsys package "$PACKAGE" | grep versionName | tr -d ' ' | head -1)
 DEVICE_CODE=$(adb_cmd logcat -d | grep "device=HANA-" | tail -1 | sed 's/.*device=\(HANA-[0-9]*\).*/\1/' || echo "確認中")

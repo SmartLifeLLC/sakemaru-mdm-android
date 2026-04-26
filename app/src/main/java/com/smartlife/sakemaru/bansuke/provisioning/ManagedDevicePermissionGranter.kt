@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.PowerManager
 import android.os.UserManager
 import com.smartlife.sakemaru.bansuke.BansukeDeviceAdminReceiver
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
@@ -88,6 +89,20 @@ class ManagedDevicePermissionGranter(context: Context) {
         }.onFailure { throwable ->
             MdmLog.warn("Failed to restore Play Store: ${throwable.message}")
         }
+    }
+
+    fun exemptFromBatteryOptimization() {
+        val pm = appContext.getSystemService(PowerManager::class.java) ?: return
+        if (pm.isIgnoringBatteryOptimizations(appContext.packageName)) return
+        runCatching {
+            val intent = android.content.Intent(
+                android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                android.net.Uri.parse("package:${appContext.packageName}"),
+            )
+            intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            appContext.startActivity(intent)
+            MdmLog.info("Battery optimization exemption dialog shown")
+        }.onFailure { MdmLog.warn("Failed to request battery optimization exemption: ${it.message}") }
     }
 
     fun hideLauncherIcon() {
