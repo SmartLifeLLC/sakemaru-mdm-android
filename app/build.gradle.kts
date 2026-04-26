@@ -71,7 +71,7 @@ android {
         applicationId = "com.smartlife.sakemaru.bansuke"
         minSdk = 26
         targetSdk = 36
-        versionCode = 111
+        versionCode = 10101
         versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
