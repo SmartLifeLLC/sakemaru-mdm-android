@@ -76,29 +76,6 @@ class ManagedDevicePermissionGranter(context: Context) {
             }
         }
         MdmLog.info("Package verifier settings disabled")
-        disablePlayProtectVerifier(dpm, adminComponent)
-    }
-
-    private fun disablePlayProtectVerifier(dpm: DevicePolicyManager, adminComponent: ComponentName) {
-        runCatching {
-            appContext.packageManager.setComponentEnabledSetting(
-                ComponentName(
-                    "com.android.vending",
-                    "com.google.android.finsky.verifier.impl.PackageVerificationReceiver",
-                ),
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP,
-            )
-            MdmLog.info("Play Protect verifier component disabled")
-        }.onFailure { throwable ->
-            MdmLog.warn("Component disable failed, trying setApplicationHidden: ${throwable.message}")
-            runCatching {
-                dpm.setApplicationHidden(adminComponent, "com.android.vending", true)
-                MdmLog.info("Play Store hidden to disable verification")
-            }.onFailure { t2 ->
-                MdmLog.warn("Failed to hide Play Store: ${t2.message}")
-            }
-        }
     }
 
     fun hideLauncherIcon() {
