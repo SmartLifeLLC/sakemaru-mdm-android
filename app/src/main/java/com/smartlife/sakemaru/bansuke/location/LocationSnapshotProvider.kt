@@ -5,14 +5,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
-import android.os.CancellationSignal
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.time.Instant
-import kotlin.coroutines.resume
 
 data class LocationSnapshot(
     val latitude: Double,
@@ -22,22 +21,68 @@ data class LocationSnapshot(
 
 class LocationSnapshotProvider(context: Context) {
     private val appContext = context.applicationContext
+    private val locationManager = appContext.getSystemService(LocationManager::class.java)
 
-    suspend fun currentOrNull(): LocationSnapshot? {
-        if (!hasAnyLocationPermission(appContext)) {
-            return null
+    @Volatile
+    private var cachedLocation: Location? = null
+    private var listening = false
+
+    private val locationListener = LocationListener { location ->
+        cachedLocation = location
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startListening() {
+        if (listening || locationManager == null || !hasAnyLocationPermission(appContext)) return
+
+        val providers = buildList {
+            if (hasFineLocationPermission(appContext) && locationManager.isProviderEnabledSafe(LocationManager.GPS_PROVIDER)) {
+                add(LocationManager.GPS_PROVIDER)
+            }
+            if (locationManager.isProviderEnabledSafe(LocationManager.NETWORK_PROVIDER)) {
+                add(LocationManager.NETWORK_PROVIDER)
+            }
         }
 
-        val locationManager = appContext.getSystemService(LocationManager::class.java) ?: return null
-        val location = currentLocationOrNull(locationManager) ?: lastKnownLocationOrNull(locationManager)
+        providers.forEach { provider ->
+            runCatching {
+                locationManager.requestLocationUpdates(
+                    provider,
+                    LOCATION_INTERVAL_MS,
+                    LOCATION_MIN_DISTANCE_M,
+                    locationListener,
+                    Looper.getMainLooper(),
+                )
+            }.onFailure { throwable ->
+                MdmLog.warn("Failed to start location updates for $provider: ${throwable.message}")
+            }
+        }
 
+        cachedLocation = lastKnownLocationOrNull()
+        listening = true
+        MdmLog.info("Location listener started: providers=${providers.joinToString()}")
+    }
+
+    fun stopListening() {
+        if (!listening || locationManager == null) return
+        runCatching { locationManager.removeUpdates(locationListener) }
+        listening = false
+    }
+
+    fun currentOrNull(): LocationSnapshot? {
+        val location = cachedLocation ?: lastKnownLocationOrNull()
         if (location == null) {
             MdmLog.warn("Location was unavailable during heartbeat")
             return null
         }
 
-        val recordedAtMillis = location.time.takeIf { it > 0 } ?: System.currentTimeMillis()
+        val ageMs = System.currentTimeMillis() - location.time
+        if (ageMs > LOCATION_STALE_MS) {
+            MdmLog.warn("Location is stale: age=${ageMs / 1000}s, discarding")
+            return null
+        }
 
+        val recordedAtMillis = location.time.takeIf { it > 0 } ?: System.currentTimeMillis()
         return LocationSnapshot(
             latitude = location.latitude,
             longitude = location.longitude,
@@ -46,72 +91,33 @@ class LocationSnapshotProvider(context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    private suspend fun currentLocationOrNull(locationManager: LocationManager): Location? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            return null
-        }
-
-        for (provider in currentLocationProviders(locationManager)) {
-            val location = suspendCancellableCoroutine<Location?> { continuation ->
-                val signal = CancellationSignal()
-
-                runCatching {
-                    locationManager.getCurrentLocation(
-                        provider,
-                        signal,
-                        ContextCompat.getMainExecutor(appContext),
-                    ) { result ->
-                        if (continuation.isActive) {
-                            continuation.resume(result)
-                        }
-                    }
-                }.onFailure {
-                    if (continuation.isActive) {
-                        continuation.resume(null)
-                    }
-                }
-
-                continuation.invokeOnCancellation {
-                    signal.cancel()
-                }
+    private fun lastKnownLocationOrNull(): Location? {
+        if (locationManager == null || !hasAnyLocationPermission(appContext)) return null
+        return buildList {
+            if (hasFineLocationPermission(appContext) && locationManager.isProviderEnabledSafe(LocationManager.GPS_PROVIDER)) {
+                add(LocationManager.GPS_PROVIDER)
             }
-
-            if (location != null) {
-                return location
+            if (locationManager.isProviderEnabledSafe(LocationManager.NETWORK_PROVIDER)) {
+                add(LocationManager.NETWORK_PROVIDER)
             }
-        }
-
-        return null
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun lastKnownLocationOrNull(locationManager: LocationManager): Location? =
-        lastKnownProviders(locationManager)
+            if (locationManager.isProviderEnabledSafe(LocationManager.PASSIVE_PROVIDER)) {
+                add(LocationManager.PASSIVE_PROVIDER)
+            }
+        }.distinct()
             .mapNotNull { provider ->
                 runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull()
             }
             .maxByOrNull { it.time }
-
-    private fun currentLocationProviders(locationManager: LocationManager): List<String> = buildList {
-        if (hasFineLocationPermission(appContext) && locationManager.isProviderEnabledSafe(LocationManager.GPS_PROVIDER)) {
-            add(LocationManager.GPS_PROVIDER)
-        }
-        if (locationManager.isProviderEnabledSafe(LocationManager.NETWORK_PROVIDER)) {
-            add(LocationManager.NETWORK_PROVIDER)
-        }
     }
-
-    private fun lastKnownProviders(locationManager: LocationManager): List<String> = buildList {
-        addAll(currentLocationProviders(locationManager))
-        if (locationManager.isProviderEnabledSafe(LocationManager.PASSIVE_PROVIDER)) {
-            add(LocationManager.PASSIVE_PROVIDER)
-        }
-    }.distinct()
 
     private fun LocationManager.isProviderEnabledSafe(provider: String): Boolean =
         runCatching { isProviderEnabled(provider) }.getOrDefault(false)
 
     companion object {
+        private const val LOCATION_INTERVAL_MS = 60_000L
+        private const val LOCATION_MIN_DISTANCE_M = 0f
+        private const val LOCATION_STALE_MS = 5 * 60_000L
+
         val foregroundPermissions: Array<String> = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
