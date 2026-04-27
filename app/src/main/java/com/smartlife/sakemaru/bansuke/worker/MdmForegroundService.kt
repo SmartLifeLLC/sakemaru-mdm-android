@@ -73,6 +73,7 @@ class MdmForegroundService : Service() {
     private fun startHeartbeatLoop() {
         serviceScope.launch {
             while (isActive) {
+                locationProvider?.refreshIntervalIfNeeded()
                 runCatching {
                     val status = if (DeviceLockCommandHandler.isLocked(applicationContext)) "locked" else "active"
                     DeviceRegistrationRepository(

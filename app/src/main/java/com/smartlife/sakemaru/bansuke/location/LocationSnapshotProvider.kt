@@ -12,6 +12,8 @@ import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.smartlife.sakemaru.bansuke.diagnostics.MdmLog
 import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
 
 data class LocationSnapshot(
     val latitude: Double,
@@ -26,6 +28,7 @@ class LocationSnapshotProvider(context: Context) {
     @Volatile
     private var cachedLocation: Location? = null
     private var listening = false
+    private var currentIntervalMs = currentLocationInterval()
 
     private val locationListener = LocationListener { location ->
         cachedLocation = location
@@ -34,21 +37,44 @@ class LocationSnapshotProvider(context: Context) {
     @SuppressLint("MissingPermission")
     fun startListening() {
         if (listening || locationManager == null || !hasAnyLocationPermission(appContext)) return
+        currentIntervalMs = currentLocationInterval()
+        registerUpdates(currentIntervalMs)
+        cachedLocation = lastKnownLocationOrNull()
+        listening = true
+    }
 
+    fun refreshIntervalIfNeeded() {
+        if (!listening || locationManager == null) return
+        val newInterval = currentLocationInterval()
+        if (newInterval != currentIntervalMs) {
+            MdmLog.info("Location interval changed: ${currentIntervalMs / 1000}s -> ${newInterval / 1000}s")
+            runCatching { locationManager.removeUpdates(locationListener) }
+            currentIntervalMs = newInterval
+            registerUpdates(newInterval)
+        }
+    }
+
+    fun stopListening() {
+        if (!listening || locationManager == null) return
+        runCatching { locationManager.removeUpdates(locationListener) }
+        listening = false
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun registerUpdates(intervalMs: Long) {
         val providers = buildList {
-            if (hasFineLocationPermission(appContext) && locationManager.isProviderEnabledSafe(LocationManager.GPS_PROVIDER)) {
+            if (hasFineLocationPermission(appContext) && locationManager!!.isProviderEnabledSafe(LocationManager.GPS_PROVIDER)) {
                 add(LocationManager.GPS_PROVIDER)
             }
-            if (locationManager.isProviderEnabledSafe(LocationManager.NETWORK_PROVIDER)) {
+            if (locationManager!!.isProviderEnabledSafe(LocationManager.NETWORK_PROVIDER)) {
                 add(LocationManager.NETWORK_PROVIDER)
             }
         }
-
         providers.forEach { provider ->
             runCatching {
-                locationManager.requestLocationUpdates(
+                locationManager!!.requestLocationUpdates(
                     provider,
-                    LOCATION_INTERVAL_MS,
+                    intervalMs,
                     LOCATION_MIN_DISTANCE_M,
                     locationListener,
                     Looper.getMainLooper(),
@@ -57,16 +83,7 @@ class LocationSnapshotProvider(context: Context) {
                 MdmLog.warn("Failed to start location updates for $provider: ${throwable.message}")
             }
         }
-
-        cachedLocation = lastKnownLocationOrNull()
-        listening = true
-        MdmLog.info("Location listener started: providers=${providers.joinToString()}")
-    }
-
-    fun stopListening() {
-        if (!listening || locationManager == null) return
-        runCatching { locationManager.removeUpdates(locationListener) }
-        listening = false
+        MdmLog.info("Location listener started: providers=${providers.joinToString()}, interval=${intervalMs / 1000}s")
     }
 
     fun currentOrNull(): LocationSnapshot? {
@@ -114,9 +131,16 @@ class LocationSnapshotProvider(context: Context) {
         runCatching { isProviderEnabled(provider) }.getOrDefault(false)
 
     companion object {
-        private const val LOCATION_INTERVAL_MS = 120_000L
+        private const val LOCATION_INTERVAL_BUSINESS_MS = 120_000L
+        private const val LOCATION_INTERVAL_OFF_MS = 300_000L
         private const val LOCATION_MIN_DISTANCE_M = 0f
-        private const val LOCATION_STALE_MS = 5 * 60_000L
+        private const val LOCATION_STALE_MS = 10 * 60_000L
+        private val JST = ZoneId.of("Asia/Tokyo")
+
+        fun currentLocationInterval(): Long {
+            val hour = LocalTime.now(JST).hour
+            return if (hour in 8..18) LOCATION_INTERVAL_BUSINESS_MS else LOCATION_INTERVAL_OFF_MS
+        }
 
         val foregroundPermissions: Array<String> = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
