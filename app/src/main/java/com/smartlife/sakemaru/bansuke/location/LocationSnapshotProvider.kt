@@ -114,7 +114,7 @@ class LocationSnapshotProvider(context: Context) {
         runCatching { isProviderEnabled(provider) }.getOrDefault(false)
 
     companion object {
-        private const val LOCATION_INTERVAL_MS = 60_000L
+        private const val LOCATION_INTERVAL_MS = 300_000L
         private const val LOCATION_MIN_DISTANCE_M = 0f
         private const val LOCATION_STALE_MS = 5 * 60_000L
 

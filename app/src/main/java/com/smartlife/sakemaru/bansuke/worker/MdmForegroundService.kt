@@ -154,7 +154,7 @@ class MdmForegroundService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1
-        private const val HEARTBEAT_INTERVAL_MS = 60_000L
+        private const val HEARTBEAT_INTERVAL_MS = 300_000L
         private const val COMMAND_SYNC_INTERVAL_MS = 180_000L
 
         fun start(context: Context) {
