@@ -26,6 +26,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.LocalTime
+import java.time.ZoneId
 
 class MdmForegroundService : Service() {
 
@@ -83,7 +85,7 @@ class MdmForegroundService : Service() {
                         DeviceRegistrationWorker.enqueue(applicationContext)
                     }
                 }
-                delay(HEARTBEAT_INTERVAL_MS)
+                delay(currentHeartbeatInterval())
             }
         }
     }
@@ -154,8 +156,15 @@ class MdmForegroundService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1
-        private const val HEARTBEAT_INTERVAL_MS = 300_000L
+        private const val HEARTBEAT_INTERVAL_BUSINESS_MS = 120_000L
+        private const val HEARTBEAT_INTERVAL_OFF_MS = 300_000L
         private const val COMMAND_SYNC_INTERVAL_MS = 180_000L
+        private val JST = ZoneId.of("Asia/Tokyo")
+
+        private fun currentHeartbeatInterval(): Long {
+            val hour = LocalTime.now(JST).hour
+            return if (hour in 8..18) HEARTBEAT_INTERVAL_BUSINESS_MS else HEARTBEAT_INTERVAL_OFF_MS
+        }
 
         fun start(context: Context) {
             context.startForegroundService(
